@@ -1,36 +1,39 @@
+import { useEffect, useState } from 'react';
+import { api } from '../../services/api';
 import styles from './styles.module.scss';
 
+type Message = {
+  id: string;
+  text: string;
+  user: {
+    name: string;
+    avatar: string;
+  }
+}
+
 export function MessageList() {
+  const [messages, setMessages] = useState<Message[]>([])
+
+  useEffect(() => {
+    api.get<Message[]>('messages').then(response => {
+      setMessages(response.data)
+    })
+  }, [])
+
   return (
     <div className={styles.messageListWrapper}>
       <ul className={styles.messageList}>
-        <li>
-          <p className={styles.messageContent}>
-            Não vejo a hora de começar esse evento, com certeza vai ser o melhor de todos os tempos, vamoo pra cima 🔥🔥
-          </p>
-          <div className={styles.messageUser}>
-            <img src="https://github.com/diego3g.png" alt="Diego Fernandes" />
-            <span>Diego Fernandes</span>
-          </div>
-        </li>
-        <li>
-          <p className={styles.messageContent}>
-            Não vejo a hora de começar esse evento, com certeza vai ser o melhor de todos os tempos, vamoo pra cima 🔥🔥
-          </p>
-          <div className={styles.messageUser}>
-            <img src="https://github.com/diego3g.png" alt="Diego Fernandes" />
-            <span>Diego Fernandes</span>
-          </div>
-        </li>
-        <li>
-          <p className={styles.messageContent}>
-            Não vejo a hora de começar esse evento, com certeza vai ser o melhor de todos os tempos, vamoo pra cima 🔥🔥
-          </p>
-          <div className={styles.messageUser}>
-            <img src="https://github.com/diego3g.png" alt="Diego Fernandes" />
-            <span>Diego Fernandes</span>
-          </div>
-        </li>
+        {messages.map(message => {
+          return (
+            <li key={message.id}>
+              <p className={styles.messageContent}>{message.text}</p>
+              <div className={styles.messageUser}>
+                <img src={message.user.avatar} alt={message.user.name} />
+                <span>{message.user.name}</span>
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

@@ -1,4 +1,5 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useState } from "react"
+import { api } from "../services/api";
 
 
 type AuthProviderProps = PropsWithChildren<{}>;
@@ -22,6 +23,20 @@ const AuthContext = createContext({} as AuthContextData);
 const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
 const redirectUri = import.meta.env.VITE_GITHUB_CALLBACK_URL;
 
+type TokenResponse = {
+  access_token: string;
+}
+
+type AuthResponse = {
+  token: string;
+  user: {
+    id: string; 
+    avatar_url: string;
+    name: string;
+    login: string;
+  }
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(() => {
     const userOnStorage = localStorage.getItem('@dowhile:user')
@@ -36,24 +51,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   async function signIn(code: string) {
-    // request back-end and get JWT auth code & user information
-
     setIsSigningIn(true);
 
     try {
-      const token = 'example-bearer-token'
+      const tokenResponse = await api.post<TokenResponse>(`/github/accessToken/${code}`);
 
-      const userData = {
-        id: 'user-id',
-        avatar_url: 'https://github.com/diego3g.png',
-        name: 'Diego Fernandes',
-        login: 'diego3g'
-      }
+      const { access_token } = tokenResponse.data;
+
+      const authResponse = await api.post<AuthResponse>('/authenticate', null, {
+        headers: {
+          authorization: access_token,
+        }
+      })
+
+      const { token, user } = authResponse.data;
 
       localStorage.setItem('@dowhile:token', token)
-      localStorage.setItem('@dowhile:user', JSON.stringify(userData))
+      localStorage.setItem('@dowhile:user', JSON.stringify(user))
 
-      setUser(userData)
+      setUser(user)
+    } catch (err) {
+      console.log(err)
     } finally {
       setIsSigningIn(false);
     }
