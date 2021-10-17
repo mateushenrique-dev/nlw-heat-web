@@ -5,11 +5,6 @@
   font-family: Roboto, sans-serif;
 }
 
-body {
-  background: #121214;
-  color: #E1E1E6;
-}
-
 :root {
   --WHITE: #FFFFFF;
   --GREEN: #1B873F;
@@ -26,3 +21,9 @@ body {
   --GRAY-TERTIARY: #E1E1E6;
   --GRAY-QUATERNARY: #29292E;
 }
+
+body {
+  background: var(--BLACK-SECONDARY);
+  color: var(--GRAY-TERTIARY);
+}
+

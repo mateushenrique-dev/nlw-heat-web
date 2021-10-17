@@ -23,10 +23,6 @@ const AuthContext = createContext({} as AuthContextData);
 const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
 const redirectUri = import.meta.env.VITE_GITHUB_CALLBACK_URL;
 
-type TokenResponse = {
-  access_token: string;
-}
-
 type AuthResponse = {
   token: string;
   user: {
@@ -37,16 +33,10 @@ type AuthResponse = {
   }
 }
 
+type ProfileResponse = AuthResponse['user']
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(() => {
-    const userOnStorage = localStorage.getItem('@dowhile:user')
-
-    if (userOnStorage) {
-      return JSON.parse(userOnStorage)
-    }
-
-    return null
-  });
+  const [user, setUser] = useState<User | null>(null);
 
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -54,20 +44,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsSigningIn(true);
 
     try {
-      const tokenResponse = await api.post<TokenResponse>(`/github/accessToken/${code}`);
+      const response = await api.post<AuthResponse>('/authenticate', {
+        code
+      });
 
-      const { access_token } = tokenResponse.data;
-
-      const authResponse = await api.post<AuthResponse>('/authenticate', null, {
-        headers: {
-          authorization: access_token,
-        }
-      })
-
-      const { token, user } = authResponse.data;
+      const { token, user } = response.data;
 
       localStorage.setItem('@dowhile:token', token)
-      localStorage.setItem('@dowhile:user', JSON.stringify(user))
+
+      api.defaults.headers.common.authorization = `Bearer ${token}`
 
       setUser(user)
     } catch (err) {
@@ -81,8 +66,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null)
 
     localStorage.removeItem('@dowhile:token')
-    localStorage.removeItem('@dowhile:user')
   }
+
+  useEffect(() => {
+    const token = localStorage.getItem('@dowhile:token')
+
+    if (token) {
+      api.defaults.headers.common.authorization = `Bearer ${token}`
+
+      api.get<ProfileResponse>('/profile')
+        .then(response => {
+          setUser(response.data)
+        })
+        .catch(() => {
+          signOut()
+        });
+    }
+  }, [])
 
   useEffect(() => {
     const url = window.location.href;
